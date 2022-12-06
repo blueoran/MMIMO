@@ -1,0 +1,16 @@
+/**
+ * @file version_config.h
+ * @brief Agora project version configuration file
+ */
+
+#ifndef VERSION_CONFIG_H_
+#define VERSION_CONFIG_H_
+#include <string>
+
+inline const std::string& GetAgoraProjectVersion() {
+  static const std::string kVersionString =
+      std::string("@CMAKE_PROJECT_VERSION@");
+  return kVersionString;
+}
+
+#endif  // VERSION_CONFIG_H_
