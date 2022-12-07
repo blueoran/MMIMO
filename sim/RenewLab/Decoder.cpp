@@ -8,7 +8,7 @@
 #include "mex.hpp"
 // #include "mex.h"
 #include "mexAdapter.hpp"
-#include "/home/steven/Course/Network/MMIMO/decoder.cpp"
+#include "../../decoder.cpp"
 
 using namespace std;
 using namespace matlab::data;

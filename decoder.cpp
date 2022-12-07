@@ -113,11 +113,13 @@ complex<double> *single_Decoder(int mod_order, int num_sender, int num_receiver,
         {
             X[i] += HtH_inv[i][j] * HtY[j];
         }
+        X[i].imag(X[i].imag());
+        X[i].real(X[i].real());
     }
     return X;
 }
 
-complex<double> **Decoder(int mod_order, int num_sender, int num_receiver, int num_ofdm_sym, complex<double> **H, complex<double> **Y)
+complex<double> **Decoder(int mod_order, int num_sender, int num_receiver, int num_ofdm_sym, complex<double> **H, complex<double> **Y, complex<double> *w = nullptr)
 {
     complex<double> **X = new complex<double> *[num_ofdm_sym];
 

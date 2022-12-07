@@ -35,7 +35,7 @@ close all;
 %     py.print() %weird bug where py isn't loaded in an external script
 % end
 mex -setup C++;
-mex Decoder.cpp;
+mex Decoder.cpp '-g';
 
 % Params:
 N_BS_NODE = 12; % Number of SDRs (Matlab scripts only using antenna A)
@@ -76,7 +76,7 @@ DO_APPLY_PHASE_ERR_CORRECTION = 1; % Enable Residual CFO estimation/correction
 %% Define the preamble
 % LTS for fine CFO and channel estimation
 lts_f = [0 1 -1 -1 1 1 -1 1 -1 1 -1 -1 -1 -1 -1 1 1 -1 -1 1 -1 1 -1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 ...
-    1 1 -1 -1 1 1 -1 1 -1 1 1 1 1 1 1 -1 -1 1 1 -1 1 -1 1 1 1 1].';
+         1 1 -1 -1 1 1 -1 1 -1 1 1 1 1 1 1 -1 -1 1 1 -1 1 -1 1 1 1 1].';
 lts_t = ifft(lts_f, N_SC); %time domain
 
 % Arrange time-orthogonal pilots
