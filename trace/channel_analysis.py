@@ -38,7 +38,7 @@ def openLog(filename,chunk_size):
 	samps_per_user = h5log.attrs['samples_per_user']
 	num_users = h5log.attrs['num_mob_ant']
 	timestep = h5log.attrs['frame_length']/20e6		
-	csi,iq = samps2csi_large(h5log['Pilot_Samples'], num_users+1, samps_per_user,chunk_size)
+	csi,iq = samps2csi_large(h5log['Pilot_Samples'], num_users+1, samps_per_user,chunk_size=chunk_size)
 	noise = csi[:,-1,:,:,:]
 	userCSI = np.mean(csi[:,:num_users,:,:,:],2)
 	return h5log, userCSI, noise, num_users, samps_per_user, timestep
