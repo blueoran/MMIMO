@@ -5,6 +5,7 @@
 #include <cstring>
 #include <complex>
 #include <vector>
+#include <eigen3/Eigen/QR>
 
 using namespace std;
 

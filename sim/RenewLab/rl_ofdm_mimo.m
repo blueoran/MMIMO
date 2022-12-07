@@ -34,8 +34,9 @@ close all;
 %     pyversion '/home/steven/anaconda3/envs/network/bin/python'
 %     py.print() %weird bug where py isn't loaded in an external script
 % end
+
 mex -setup C++;
-mex Decoder.cpp '-g';
+mex '-I/user/include/eigen3' Decoder.cpp;
 
 % Params:
 N_BS_NODE = 12; % Number of SDRs (Matlab scripts only using antenna A)

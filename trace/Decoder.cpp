@@ -2,33 +2,6 @@
 
 complex<double> *C_Decoder(int mod_order, int num_sender, int num_receiver, int num_ofdm_sym, complex<double> **H, complex<double> *Y, complex<double> *w = nullptr)
 {
-    // std::cerr << "mod_order: " << mod_order << std::endl;
-    // std::cerr << "num_sender: " << num_sender << std::endl;
-    // std::cerr << "num_receiver: " << num_receiver << std::endl;
-    // std::cerr << "num_ofdm_sym: " << num_ofdm_sym << std::endl;
-    // std::cerr << "H: " << std::endl;
-    // for (int i = 0; i < num_receiver; i++)
-    // {
-    //     for (int j = 0; j < num_sender; j++)
-    //     {
-    //         std::cerr << *H[i] << " ";
-    //     }
-    //     std::cerr << std::endl;
-    // }
-    // std::cerr << std::endl;
-    // std::cerr << "Y: " << std::endl;
-    // for (int i = 0; i < num_receiver; i++)
-    // {
-    //     std::cerr << Y[i] << " ";
-    // }
-    // std::cerr << std::endl;
-    // std::cerr << "w: " << std::endl;
-    // for (int i = 0; i < num_receiver; i++)
-    // {
-    //     std::cerr << w[i] << " ";
-    // }
-    // std::cerr << std::endl;
-
     complex<double> **Y2 = new complex<double> *;
     Y2[0] = Y;
     return Decoder(mod_order, num_sender, num_receiver, num_ofdm_sym, H, Y2, w)[0];
