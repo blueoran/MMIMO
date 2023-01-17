@@ -57,7 +57,6 @@ void dfs_search(int mod_order, int num_sender, int num_receiver,
                 int cur_layer,
                 complex<double> *cur_s,
                 double cur_partial_dis,
-                complex<double> cur_temp_accumu_for_cost_calc,
                 double &cur_radius_square,
                 complex<double> *X)
 {
@@ -73,15 +72,19 @@ void dfs_search(int mod_order, int num_sender, int num_receiver,
         return;
     }
     pair<int, double> symbol_dis[mod_order];
+    
     for (int i = 0; i < mod_order; ++i)
     {
         symbol_dis[i].first = i;
-        complex<double> temp = cur_temp_accumu_for_cost_calc;
+        complex<double> temp = 0;
         if (cur_layer <= num_receiver)
-            temp += (*(R + (cur_layer - 1) * num_sender + (cur_layer - 1))) * symbols[i];
-        temp = -temp;
-        if (cur_layer <= num_receiver)
+        {
+            for (int i = cur_layer + 1; i <= num_receiver; ++i) {
+                temp -= (*(R + (i - 1) * num_receiver + (cur_layer - 1))) * cur_s[i - 1];
+            }
+            temp -= (*(R + (cur_layer - 1) * num_receiver + (cur_layer - 1))) * symbols[i];
             temp += y[cur_layer - 1];
+        }
         symbol_dis[i].second = temp.real() * temp.real() + temp.imag() * temp.imag() + cur_partial_dis;
     }
     sort(symbol_dis, symbol_dis + mod_order, [](pair<int, double> a, pair<int, double> b)
@@ -93,8 +96,7 @@ void dfs_search(int mod_order, int num_sender, int num_receiver,
             return;
         }
         cur_s[cur_layer - 1] = symbols[symbol_dis[i].first];
-        complex<double> temp = cur_temp_accumu_for_cost_calc + (*(R + (cur_layer - 1) * num_sender + (cur_layer - 1))) * symbols[cur_layer - 1];
-        dfs_search(mod_order, num_sender, num_receiver, symbols, y, R, cur_layer - 1, cur_s, symbol_dis[i].second, temp, cur_radius_square, X);
+        dfs_search(mod_order, num_sender, num_receiver, symbols, y, R, cur_layer - 1, cur_s, symbol_dis[i].second, cur_radius_square, X);
     }
 }
 
@@ -133,7 +135,7 @@ complex<double> *sphere_single_Decoder(int mod_order, int num_sender, int num_re
     y_hat = Q.adjoint() * y;
 
     double radius_square = 10000000000.0;
-    dfs_search(mod_order, num_sender, num_receiver, symbols, y_hat.data(), R.data(), num_sender, s, 0, 0, radius_square, X);
+    dfs_search(mod_order, num_sender, num_receiver, symbols, y_hat.data(), R.data(), num_sender, s, 0, radius_square, X);
 
     delete[] symbols;
     delete[] s;

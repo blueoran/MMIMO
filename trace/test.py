@@ -84,7 +84,7 @@ if __name__ == '__main__':
     bws=calc_martix(userCSI,0,10,'zf')
 
     print("mod order = 4")
-    msg_send,msg_recv=simulate(CDecoder, 4,bws,noise,10,0.5,False)
+    msg_send,msg_recv=simulate(CDecoder, 16,bws,noise,10,0.5,False)
     cal_BER(msg_send,msg_recv)
 
     '''

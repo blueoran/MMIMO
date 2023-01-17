@@ -13,13 +13,24 @@
 using namespace std;
 using namespace Eigen;
 
-int main()
+int main(int argc, char *argv[])
 {
+    if (argc != 6)
+    {
+        cout << "Usage:" << endl
+             << argv[0]
+             << " <module num> <sim times> <sender num> <receiver num> <add noise>" << endl
+             << "    Where <module num> should be in {4, 16, 32, 64}," << endl
+             << "    <add noise> should be 0/1, 0 representing no noise." << endl;
+        exit(-1);
+    }
     srand(time(0));
-    int mod_order = 16;
-    int times = 1;
-    int sender = 8;
-    int receiver = 6;
+    int mod_order = atoi(argv[1]);
+    int times = atoi(argv[2]);
+    int sender = atoi(argv[3]);
+    int receiver = atoi(argv[4]);
+    int add_noise = atoi(argv[5]);
+
     complex<double> *symbols = gen_symbols(mod_order);
     Matrix<complex<double>, Dynamic, 1> S(sender);
     Matrix<complex<double>, Dynamic, 1> Y(receiver);
@@ -42,6 +53,12 @@ int main()
             HH[j][i] = H(j, i);
         }
     }
+
+    HouseholderQR<Matrix<complex<double>, Dynamic, Dynamic>> QR(H);
+    Matrix<complex<double>, Dynamic, Dynamic> Q, R;
+    Q = QR.householderQ();
+    R = QR.matrixQR().triangularView<Upper>();
+
     complex<double> *YY = new complex<double>[receiver];
     complex<double> *ww = new complex<double>[receiver];
 
@@ -53,13 +70,9 @@ int main()
         {
             S(i, 0) = symbols[rand() % mod_order];
         }
-        Y = w + H * S;
-        cout << "S" << endl
-             << S << endl
-             << "w" << endl
-             << w << endl
-             << "Y" << endl
-             << Y << endl;
+        Y = H * S;
+        if (add_noise != 0)
+            Y += w;
         for (int i = 0; i < receiver; ++i)
         {
             YY[i] = Y(i, 0);
@@ -67,11 +80,16 @@ int main()
         }
         X = Decoder(mod_order, sender, receiver, 1, HH, &YY, ww);
 
+        int error_num = 0;
+        cout << "  send  |  decode" << endl;
         for (int i = 0; i < sender; ++i)
         {
-            cout << S(i, 0) << " " << X[0][i] << endl;
+            cout << setw(7) << S(i, 0) << " | " << X[0][i] << endl;
+            if (S(i, 0) != X[0][i])
+                error_num++;
         }
-        cout << endl;
+        cout.width(0);
+        cout << "Error symbol num:" << error_num << endl;
     }
     delete[] ww;
     delete[] YY;
