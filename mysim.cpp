@@ -38,6 +38,7 @@ int main(int argc, char *argv[])
     Matrix<complex<double>, Dynamic, Dynamic> H(receiver, sender);
     complex<double> **X;
 
+    // initialize
     H.setRandom();
 
     complex<double> **HH = new complex<double> *[receiver];
@@ -54,6 +55,7 @@ int main(int argc, char *argv[])
         }
     }
 
+    // QR, for evaluation
     HouseholderQR<Matrix<complex<double>, Dynamic, Dynamic>> QR(H);
     Matrix<complex<double>, Dynamic, Dynamic> Q, R;
     Q = QR.householderQ();
@@ -62,12 +64,17 @@ int main(int argc, char *argv[])
     complex<double> *YY = new complex<double>[receiver];
     complex<double> *ww = new complex<double>[receiver];
 
+    double total_symbol = 0;
+    double total_error_symbol = 0;
+    double error_time = 0;
+
     for (int t = 1; t <= times; ++t)
     {
         cout << "time: " << t << endl;
         w.setRandom();
         for (int i = 0; i < sender; ++i)
         {
+            // random select symbols to send
             S(i, 0) = symbols[rand() % mod_order];
         }
         Y = H * S;
@@ -75,6 +82,7 @@ int main(int argc, char *argv[])
             Y += w;
         for (int i = 0; i < receiver; ++i)
         {
+            // deep copy
             YY[i] = Y(i, 0);
             ww[i] = w(i, 0);
         }
@@ -90,7 +98,17 @@ int main(int argc, char *argv[])
         }
         cout.width(0);
         cout << "Error symbol num:" << error_num << endl;
+
+        total_symbol += sender;
+        total_error_symbol += error_num;
+        if (error_num != 0)
+            error_time++;
     }
+
+    cout << endl;
+    cout << "Symbol Error Rate: " << total_error_symbol << "/" << total_symbol << " = " << total_error_symbol / total_symbol << endl;
+    cout << "Error decoding time: " << error_time << "/" << times << " = " << error_time / times << endl;
+
     delete[] ww;
     delete[] YY;
     for (int i = 0; i < receiver; ++i)

@@ -60,9 +60,10 @@ void dfs_search(int mod_order, int num_sender, int num_receiver,
                 double &cur_radius_square,
                 complex<double> *X)
 {
-    // cout << cur_layer << " " << cur_radius_square << " " << cur_partial_dis << " " << cur_temp_accumu_for_cost_calc << endl;
     if (cur_layer <= 0)
     {
+        // reach the tree leaf, test if the dis is closer, 
+        // if so, update answer(X) and dis (radius)
         if (cur_partial_dis < cur_radius_square)
         {
             cur_radius_square = cur_partial_dis;
@@ -75,26 +76,41 @@ void dfs_search(int mod_order, int num_sender, int num_receiver,
     
     for (int i = 0; i < mod_order; ++i)
     {
+        // try for each symbol, calculate the cost of this symbol on this layer
         symbol_dis[i].first = i;
         complex<double> temp = 0;
+        // if cur_layer > num_receiver, calculation cannot be finished, 
+        // just let cost = 0
         if (cur_layer <= num_receiver)
         {
+            // calculating dot_product(R(row[cur_layer]), current_seleceted_symbol)
+            // first, calculate the symbols selected by upper layer
             for (int i = cur_layer + 1; i <= num_receiver; ++i) {
+                // note: Eigen save matrix as col form, so R(i, j) actually locates at *(R + j * col_len + i)
                 temp -= (*(R + (i - 1) * num_receiver + (cur_layer - 1))) * cur_s[i - 1];
             }
+            // second, calculate this possible symbol[i]
             temp -= (*(R + (cur_layer - 1) * num_receiver + (cur_layer - 1))) * symbols[i];
+            // temp = y[l] - dot_product
             temp += y[cur_layer - 1];
         }
+        // cost = |temp|^2
+        // dis(l-1, i) = dis(l) + cost(i)
         symbol_dis[i].second = temp.real() * temp.real() + temp.imag() * temp.imag() + cur_partial_dis;
     }
+    // sort the possible symbols by dis
     sort(symbol_dis, symbol_dis + mod_order, [](pair<int, double> a, pair<int, double> b)
          { return a.second < b.second; });
+
+    // try them at next layer
     for (int i = 0; i < mod_order; ++i)
     {
         if (symbol_dis[i].second >= cur_radius_square)
         {
+            // if the dis is not optimal, return (symbols ar sorted by dis)
             return;
         }
+        // save currently selected symbol
         cur_s[cur_layer - 1] = symbols[symbol_dis[i].first];
         dfs_search(mod_order, num_sender, num_receiver, symbols, y, R, cur_layer - 1, cur_s, symbol_dis[i].second, cur_radius_square, X);
     }
@@ -103,6 +119,7 @@ void dfs_search(int mod_order, int num_sender, int num_receiver,
 complex<double> *sphere_single_Decoder(int mod_order, int num_sender, int num_receiver,
                                        complex<double> **H, complex<double> *Y)
 {
+    // get the reference symbols
     complex<double> *symbols = gen_symbols(mod_order);
 
     complex<double> *X = new complex<double>[num_sender];
@@ -115,6 +132,7 @@ complex<double> *sphere_single_Decoder(int mod_order, int num_sender, int num_re
         for (int j = 0; j < num_receiver; ++j)
             HH(j, i) = H[j][i];
 
+    // map C array to Eigen Matrix
     Matrix<complex<double>, Dynamic, 1> y = Map<Matrix<complex<double>, Dynamic, 1>>(Y, num_receiver, 1);
 
     // Shapes:
@@ -126,6 +144,8 @@ complex<double> *sphere_single_Decoder(int mod_order, int num_sender, int num_re
     // Formula:
     // H = Q * R
     // y_hat = Q^* * y
+
+    // Do QR decomposition
     HouseholderQR<Matrix<complex<double>, Dynamic, Dynamic>> QR(HH);
     Matrix<complex<double>, Dynamic, Dynamic> Q, R;
     Q = QR.householderQ();
@@ -134,6 +154,7 @@ complex<double> *sphere_single_Decoder(int mod_order, int num_sender, int num_re
     Matrix<complex<double>, Dynamic, 1> y_hat(num_receiver);
     y_hat = Q.adjoint() * y;
 
+    // start search
     double radius_square = 10000000000.0;
     dfs_search(mod_order, num_sender, num_receiver, symbols, y_hat.data(), R.data(), num_sender, s, 0, radius_square, X);
 
