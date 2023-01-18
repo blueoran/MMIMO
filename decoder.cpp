@@ -43,7 +43,7 @@ complex<double> **Decoder(int mod_order, int num_sender, int num_receiver,
 
     for (int i = 0; i < num_ofdm_sym; i++)
     {
-        X[i] = single_Decoder(mod_order, num_sender, num_receiver, H, Y[i]);
+        X[i] = sphere_single_Decoder(mod_order, num_sender, num_receiver, H, Y[i]);
     }
     return X;
 }
@@ -62,7 +62,7 @@ void dfs_search(int mod_order, int num_sender, int num_receiver,
 {
     if (cur_layer <= 0)
     {
-        // reach the tree leaf, test if the dis is closer, 
+        // reach the tree leaf, test if the dis is closer,
         // if so, update answer(X) and dis (radius)
         if (cur_partial_dis < cur_radius_square)
         {
@@ -73,19 +73,20 @@ void dfs_search(int mod_order, int num_sender, int num_receiver,
         return;
     }
     pair<int, double> symbol_dis[mod_order];
-    
+
     for (int i = 0; i < mod_order; ++i)
     {
         // try for each symbol, calculate the cost of this symbol on this layer
         symbol_dis[i].first = i;
         complex<double> temp = 0;
-        // if cur_layer > num_receiver, calculation cannot be finished, 
+        // if cur_layer > num_receiver, calculation cannot be finished,
         // just let cost = 0
         if (cur_layer <= num_receiver)
         {
             // calculating dot_product(R(row[cur_layer]), current_seleceted_symbol)
             // first, calculate the symbols selected by upper layer
-            for (int i = cur_layer + 1; i <= num_receiver; ++i) {
+            for (int i = cur_layer + 1; (i <= num_receiver) && (i <= num_sender); ++i)
+            {
                 // note: Eigen save matrix as col form, so R(i, j) actually locates at *(R + j * col_len + i)
                 temp -= (*(R + (i - 1) * num_receiver + (cur_layer - 1))) * cur_s[i - 1];
             }
@@ -274,6 +275,15 @@ complex<double> *single_Decoder(int mod_order, int num_sender, int num_receiver,
         }
         X[i].imag(X[i].imag());
         X[i].real(X[i].real());
+
+        int r_i = (int)floor(X[i].real());
+        if (r_i % 2 == 0)
+            r_i++;
+        int i_i = (int)floor(X[i].imag());
+        if (i_i % 2 == 0)
+            i_i++;
+        X[i].real((double)r_i);
+        X[i].imag((double)i_i);
     }
     return X;
 }
