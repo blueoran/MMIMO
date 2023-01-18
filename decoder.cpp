@@ -43,7 +43,7 @@ complex<double> **Decoder(int mod_order, int num_sender, int num_receiver,
 
     for (int i = 0; i < num_ofdm_sym; i++)
     {
-        X[i] = sphere_single_Decoder(mod_order, num_sender, num_receiver, H, Y[i]);
+        X[i] = single_Decoder(mod_order, num_sender, num_receiver, H, Y[i]);
     }
     return X;
 }

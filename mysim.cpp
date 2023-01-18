@@ -93,8 +93,10 @@ int main(int argc, char *argv[])
         for (int i = 0; i < sender; ++i)
         {
             cout << setw(7) << S(i, 0) << " | " << X[0][i] << endl;
-            if (S(i, 0) != X[0][i])
+            if (S(i, 0).real() - X[0][i].real() > 1e-6 || S(i, 0).imag() - X[0][i].imag() > 1e-6)
+            {
                 error_num++;
+            }
         }
         cout.width(0);
         cout << "Error symbol num:" << error_num << endl;
