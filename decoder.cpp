@@ -5,25 +5,29 @@
 #include <eigen3/Eigen/Dense>
 #include <iomanip>
 #include <iostream>
-#include <vector>
 #include <utility>
+#include <vector>
 
 using namespace std;
 using namespace Eigen;
 
-// ------------------------------ Symbol Generator ------------------------------
+// ------------------------------ Symbol Generator
+// ------------------------------
 
 complex<double> *gen_symbols(int mod_order);
 
-// ------------------------------ Decoders declare ------------------------------
+// ------------------------------ Decoders declare
+// ------------------------------
 
 /// @brief Zero Forcing Single Decoder
 complex<double> *single_Decoder(int mod_order, int num_sender, int num_receiver,
-                                complex<double> **H, complex<double> *Y);
+                                complex<double> **H, complex<double> *Y,
+                                complex<double> *w);
 
 /// @brief Sphere Single Decoder
-complex<double> *sphere_single_Decoder(int mod_order, int num_sender, int num_receiver,
-                                       complex<double> **H, complex<double> *Y);
+complex<double> *sphere_single_Decoder(int mod_order, int num_sender,
+                                       int num_receiver, complex<double> **H,
+                                       complex<double> *Y, complex<double> *w);
 
 // ------------------------------ Interface ------------------------------
 
@@ -37,13 +41,18 @@ complex<double> *sphere_single_Decoder(int mod_order, int num_sender, int num_re
 /// @return decoded vectors X
 complex<double> **Decoder(int mod_order, int num_sender, int num_receiver,
                           int num_ofdm_sym, complex<double> **H,
-                          complex<double> **Y, complex<double> *w = nullptr)
-{
+                          complex<double> **Y, complex<double> *w = nullptr) {
     complex<double> **X = new complex<double> *[num_ofdm_sym];
 
-    for (int i = 0; i < num_ofdm_sym; i++)
-    {
-        X[i] = sphere_single_Decoder(mod_order, num_sender, num_receiver, H, Y[i]);
+    for (int i = 0; i < num_ofdm_sym; i++) {
+#ifdef ZF
+        X[i] = single_Decoder(mod_order, num_sender, num_receiver, H, Y[i], w);
+#elif defined SP
+        X[i] = sphere_single_Decoder(mod_order, num_sender, num_receiver, H,
+                                     Y[i], w);
+#else
+        X[i] = single_Decoder(mod_order, num_sender, num_receiver, H, Y[i], w);
+#endif
     }
     return X;
 }
@@ -51,90 +60,86 @@ complex<double> **Decoder(int mod_order, int num_sender, int num_receiver,
 // ------------------------------ Sphere ------------------------------
 
 void dfs_search(int mod_order, int num_sender, int num_receiver,
-                complex<double> *symbols,
-                complex<double> *y,
-                complex<double> *R,
-                int cur_layer,
-                complex<double> *cur_s,
-                double cur_partial_dis,
-                double &cur_radius_square,
-                complex<double> *X)
-{
-    if (cur_layer <= 0)
-    {
+                complex<double> *symbols, complex<double> *y,
+                complex<double> *R, int cur_layer, complex<double> *cur_s,
+                double cur_partial_dis, double &cur_radius_square,
+                complex<double> *X) {
+    if (cur_layer <= 0) {
         // reach the tree leaf, test if the dis is closer,
         // if so, update answer(X) and dis (radius)
-        if (cur_partial_dis < cur_radius_square)
-        {
+        if (cur_partial_dis < cur_radius_square) {
             cur_radius_square = cur_partial_dis;
-            for (int i = 0; i < num_sender; ++i)
-                X[i] = cur_s[i];
+            for (int i = 0; i < num_sender; ++i) X[i] = cur_s[i];
         }
         return;
     }
     pair<int, double> symbol_dis[mod_order];
 
-    for (int i = 0; i < mod_order; ++i)
-    {
+    for (int i = 0; i < mod_order; ++i) {
         // try for each symbol, calculate the cost of this symbol on this layer
         symbol_dis[i].first = i;
         complex<double> temp = 0;
         // if cur_layer > num_receiver, calculation cannot be finished,
         // just let cost = 0
-        if (cur_layer <= num_receiver)
-        {
-            // calculating dot_product(R(row[cur_layer]), current_seleceted_symbol)
-            // first, calculate the symbols selected by upper layer
-            for (int i = cur_layer + 1; (i <= num_receiver) && (i <= num_sender); ++i)
-            {
-                // note: Eigen save matrix as col form, so R(i, j) actually locates at *(R + j * col_len + i)
-                temp -= (*(R + (i - 1) * num_receiver + (cur_layer - 1))) * cur_s[i - 1];
+        if (cur_layer <= num_receiver) {
+            // calculating dot_product(R(row[cur_layer]),
+            // current_seleceted_symbol) first, calculate the symbols selected
+            // by upper layer
+            for (int i = cur_layer + 1;
+                 (i <= num_receiver) && (i <= num_sender); ++i) {
+                // note: Eigen save matrix as col form, so R(i, j) actually
+                // locates at *(R + j * col_len + i)
+                temp -= (*(R + (i - 1) * num_receiver + (cur_layer - 1))) *
+                        cur_s[i - 1];
             }
             // second, calculate this possible symbol[i]
-            temp -= (*(R + (cur_layer - 1) * num_receiver + (cur_layer - 1))) * symbols[i];
+            temp -= (*(R + (cur_layer - 1) * num_receiver + (cur_layer - 1))) *
+                    symbols[i];
             // temp = y[l] - dot_product
             temp += y[cur_layer - 1];
         }
         // cost = |temp|^2
         // dis(l-1, i) = dis(l) + cost(i)
-        symbol_dis[i].second = temp.real() * temp.real() + temp.imag() * temp.imag() + cur_partial_dis;
+        symbol_dis[i].second = temp.real() * temp.real() +
+                               temp.imag() * temp.imag() + cur_partial_dis;
     }
     // sort the possible symbols by dis
-    sort(symbol_dis, symbol_dis + mod_order, [](pair<int, double> a, pair<int, double> b)
-         { return a.second < b.second; });
+    sort(symbol_dis, symbol_dis + mod_order,
+         [](pair<int, double> a, pair<int, double> b) {
+             return a.second < b.second;
+         });
 
     // try them at next layer
-    for (int i = 0; i < mod_order; ++i)
-    {
-        if (symbol_dis[i].second >= cur_radius_square)
-        {
+    for (int i = 0; i < mod_order; ++i) {
+        if (symbol_dis[i].second >= cur_radius_square) {
             // if the dis is not optimal, return (symbols ar sorted by dis)
             return;
         }
         // save currently selected symbol
         cur_s[cur_layer - 1] = symbols[symbol_dis[i].first];
-        dfs_search(mod_order, num_sender, num_receiver, symbols, y, R, cur_layer - 1, cur_s, symbol_dis[i].second, cur_radius_square, X);
+        dfs_search(mod_order, num_sender, num_receiver, symbols, y, R,
+                   cur_layer - 1, cur_s, symbol_dis[i].second,
+                   cur_radius_square, X);
     }
 }
 
-complex<double> *sphere_single_Decoder(int mod_order, int num_sender, int num_receiver,
-                                       complex<double> **H, complex<double> *Y)
-{
+complex<double> *sphere_single_Decoder(int mod_order, int num_sender,
+                                       int num_receiver, complex<double> **H,
+                                       complex<double> *Y, complex<double> *w) {
     // get the reference symbols
     complex<double> *symbols = gen_symbols(mod_order);
 
     complex<double> *X = new complex<double>[num_sender];
     complex<double> *s = new complex<double>[num_sender];
-    for (int i = 0; i < num_sender; i++)
-        X[i] = s[i] = 0;
+    for (int i = 0; i < num_sender; i++) X[i] = s[i] = 0;
 
     Matrix<complex<double>, Dynamic, Dynamic> HH(num_receiver, num_sender);
     for (int i = 0; i < num_sender; ++i)
-        for (int j = 0; j < num_receiver; ++j)
-            HH(j, i) = H[j][i];
+        for (int j = 0; j < num_receiver; ++j) HH(j, i) = H[j][i];
 
     // map C array to Eigen Matrix
-    Matrix<complex<double>, Dynamic, 1> y = Map<Matrix<complex<double>, Dynamic, 1>>(Y, num_receiver, 1);
+    Matrix<complex<double>, Dynamic, 1> y =
+        Map<Matrix<complex<double>, Dynamic, 1>>(Y, num_receiver, 1);
 
     // Shapes:
     // H: r * s
@@ -156,8 +161,35 @@ complex<double> *sphere_single_Decoder(int mod_order, int num_sender, int num_re
     y_hat = Q.adjoint() * y;
 
     // start search
-    double radius_square = 10000000000.0;
-    dfs_search(mod_order, num_sender, num_receiver, symbols, y_hat.data(), R.data(), num_sender, s, 0, radius_square, X);
+    double radius_square = 1e10;
+
+#ifndef SP_RADIUS_OPT
+    radius_square = 1e10;
+#else
+    if (w == nullptr) {
+        radius_square = 1e10;
+    } else {
+        complex<double> mean = 0;
+        double variance = 0;
+        for (int i = 0; i < num_receiver; ++i) {
+            mean += w[i];
+        }
+        mean /= num_receiver;
+        for (int i = 0; i < num_receiver; ++i) {
+            complex<double> sub = w[i] - mean;
+            variance += sub.real() * sub.real() + sub.imag() * sub.imag();
+        }
+        if (num_receiver > 1)
+            variance /= (num_receiver - 1);
+        else
+            variance = 1;
+        radius_square = mod_order * mod_order * num_receiver * variance;
+        cout << "searching radius^2: " << radius_square << endl;
+    }
+#endif
+
+    dfs_search(mod_order, num_sender, num_receiver, symbols, y_hat.data(),
+               R.data(), num_sender, s, 0, radius_square, X);
 
     delete[] symbols;
     delete[] s;
@@ -167,49 +199,37 @@ complex<double> *sphere_single_Decoder(int mod_order, int num_sender, int num_re
 
 // ------------------------------ Zero Forcing ------------------------------
 
-complex<double> **zeroforcing_Inverse(complex<double> **M, int n)
-{
+complex<double> **zeroforcing_Inverse(complex<double> **M, int n) {
     complex<double> **A = new complex<double> *[n];
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
         A[i] = new complex<double>[n];
     }
     complex<double> **B = new complex<double> *[n];
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
         B[i] = new complex<double>[n];
     }
-    for (int i = 0; i < n; i++)
-    {
-        for (int j = 0; j < n; j++)
-        {
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
             A[i][j] = M[i][j];
             B[i][j] = 0;
         }
     }
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
         B[i][i] = 1;
     }
-    for (int i = 0; i < n; i++)
-    {
-        for (int j = 0; j < n; j++)
-        {
-            if (i != j)
-            {
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            if (i != j) {
                 complex<double> temp = A[j][i] / A[i][i];
-                for (int k = 0; k < n; k++)
-                {
+                for (int k = 0; k < n; k++) {
                     A[j][k] -= temp * A[i][k];
                     B[j][k] -= temp * B[i][k];
                 }
             }
         }
     }
-    for (int i = 0; i < n; i++)
-    {
-        for (int j = 0; j < n; j++)
-        {
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
             B[i][j] /= A[i][i];
         }
     }
@@ -217,127 +237,102 @@ complex<double> **zeroforcing_Inverse(complex<double> **M, int n)
 }
 
 complex<double> *single_Decoder(int mod_order, int num_sender, int num_receiver,
-                                complex<double> **H, complex<double> *Y)
-{
+                                complex<double> **H, complex<double> *Y,
+                                complex<double> *w) {
     complex<double> *X = new complex<double>[num_sender];
-    for (int i = 0; i < num_sender; i++)
-    {
+    for (int i = 0; i < num_sender; i++) {
         X[i] = 0;
     }
     complex<double> **Ht = new complex<double> *[num_sender];
-    for (int i = 0; i < num_sender; i++)
-    {
+    for (int i = 0; i < num_sender; i++) {
         Ht[i] = new complex<double>[num_receiver];
     }
-    for (int i = 0; i < num_sender; i++)
-    {
-        for (int j = 0; j < num_receiver; j++)
-        {
+    for (int i = 0; i < num_sender; i++) {
+        for (int j = 0; j < num_receiver; j++) {
             Ht[i][j] = H[j][i];
         }
     }
     complex<double> **HtH = new complex<double> *[num_sender];
-    for (int i = 0; i < num_sender; i++)
-    {
+    for (int i = 0; i < num_sender; i++) {
         HtH[i] = new complex<double>[num_sender];
     }
-    for (int i = 0; i < num_sender; i++)
-    {
-        for (int j = 0; j < num_sender; j++)
-        {
+    for (int i = 0; i < num_sender; i++) {
+        for (int j = 0; j < num_sender; j++) {
             HtH[i][j] = 0;
-            for (int k = 0; k < num_receiver; k++)
-            {
+            for (int k = 0; k < num_receiver; k++) {
                 HtH[i][j] += Ht[i][k] * H[k][j];
             }
         }
     }
     complex<double> *HtY = new complex<double>[num_sender];
-    for (int i = 0; i < num_sender; i++)
-    {
+    for (int i = 0; i < num_sender; i++) {
         HtY[i] = 0;
-        for (int j = 0; j < num_receiver; j++)
-        {
+        for (int j = 0; j < num_receiver; j++) {
             HtY[i] += Ht[i][j] * Y[j];
         }
     }
     complex<double> **HtH_inv = new complex<double> *[num_sender];
-    for (int i = 0; i < num_sender; i++)
-    {
+    for (int i = 0; i < num_sender; i++) {
         HtH_inv[i] = new complex<double>[num_sender];
     }
     HtH_inv = zeroforcing_Inverse(HtH, num_sender);
-    for (int i = 0; i < num_sender; i++)
-    {
-        for (int j = 0; j < num_sender; j++)
-        {
+    for (int i = 0; i < num_sender; i++) {
+        for (int j = 0; j < num_sender; j++) {
             X[i] += HtH_inv[i][j] * HtY[j];
         }
         X[i].imag(X[i].imag());
         X[i].real(X[i].real());
 
         int r_i = (int)floor(X[i].real());
-        if (r_i % 2 == 0)
-            r_i++;
+        if (r_i % 2 == 0) r_i++;
         int i_i = (int)floor(X[i].imag());
-        if (i_i % 2 == 0)
-            i_i++;
+        if (i_i % 2 == 0) i_i++;
         X[i].real((double)r_i);
         X[i].imag((double)i_i);
     }
     return X;
 }
 
-// ------------------------------ Symbol Generator ------------------------------
+// ------------------------------ Symbol Generator
+// ------------------------------
 
-complex<double> *gen_symbols(int mod_order)
-{
+complex<double> *gen_symbols(int mod_order) {
     complex<double> *symbols = new complex<double>[mod_order];
     int num = 0;
-    if (mod_order >= 4)
-    {
+    if (mod_order >= 4) {
         for (int i = -1; i <= 1; i += 2)
             for (int j = -1; j <= 1; j += 2)
                 symbols[num++] = complex<double>(i, j);
     }
-    if (mod_order >= 16)
-    {
+    if (mod_order >= 16) {
         for (int j = -1; j <= 1; j += 2)
             symbols[num++] = complex<double>(-3, j);
-        for (int j = -1; j <= 1; j += 2)
-            symbols[num++] = complex<double>(3, j);
+        for (int j = -1; j <= 1; j += 2) symbols[num++] = complex<double>(3, j);
         for (int i = -1; i <= 1; i += 2)
             symbols[num++] = complex<double>(i, -3);
-        for (int i = -1; i <= 1; i += 2)
-            symbols[num++] = complex<double>(i, 3);
+        for (int i = -1; i <= 1; i += 2) symbols[num++] = complex<double>(i, 3);
         for (int i = -3; i <= 3; i += 6)
             for (int j = -3; j <= 3; j += 6)
                 symbols[num++] = complex<double>(i, j);
     }
-    if (mod_order >= 32)
-    {
+    if (mod_order >= 32) {
         for (int j = -3; j <= 3; j += 2)
             symbols[num++] = complex<double>(-5, j);
-        for (int j = -3; j <= 3; j += 2)
-            symbols[num++] = complex<double>(5, j);
+        for (int j = -3; j <= 3; j += 2) symbols[num++] = complex<double>(5, j);
         for (int i = -3; i <= 3; i += 2)
             symbols[num++] = complex<double>(i, -5);
-        for (int i = -3; i <= 3; i += 2)
-            symbols[num++] = complex<double>(i, 5);
+        for (int i = -3; i <= 3; i += 2) symbols[num++] = complex<double>(i, 5);
     }
-    if (mod_order >= 64)
-    {
+    if (mod_order >= 64) {
         for (int i = -5; i <= 5; i += 10)
             for (int j = -5; j <= 5; j += 10)
                 symbols[num++] = complex<double>(i, j);
         for (int j = -5; j <= 5; j += 2)
             symbols[num++] = complex<double>(-7, j);
-        for (int j = -5; j <= 5; j += 2)
-            symbols[num++] = complex<double>(7, j);
+        for (int j = -5; j <= 5; j += 2) symbols[num++] = complex<double>(7, j);
         for (int i = -5; i <= 5; i += 2)
             symbols[num++] = complex<double>(i, -7);
-        for (int i = -5; i <= 5; i += 2)
-            symbols[num++] = complex<double>(i, 7);
+        for (int i = -5; i <= 5; i += 2) symbols[num++] = complex<double>(i, 7);
         for (int i = -7; i <= 7; i += 14)
             for (int j = -7; j <= 7; j += 14)
                 symbols[num++] = complex<double>(i, j);
