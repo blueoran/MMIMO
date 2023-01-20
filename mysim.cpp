@@ -1,3 +1,6 @@
+#include <sys/time.h>
+#include <unistd.h>
+
 #include <algorithm>
 #include <cmath>
 #include <complex>
@@ -27,7 +30,12 @@ int main(int argc, char *argv[]) {
              << endl;
         exit(-1);
     }
-    srand(time(0));
+
+    // precise random seed
+    struct timeval time;
+    gettimeofday(&time, NULL);
+    srand(time.tv_sec * 1000 + time.tv_usec / 1000);
+
     int mod_order = atoi(argv[1]);
     int times = atoi(argv[2]);
     int sender = atoi(argv[3]);
@@ -74,7 +82,7 @@ int main(int argc, char *argv[]) {
 
     for (int t = 1; t <= times; ++t) {
         start = clock();
-        cout << "time: " << t << endl;
+        // cout << "time: " << t << endl;
         w.setRandom();
         for (int i = 0; i < sender; ++i) {
             // random select symbols to send
@@ -97,16 +105,16 @@ int main(int argc, char *argv[]) {
         decode_time += double(end - start) / CLOCKS_PER_SEC * 1000;
 
         int error_num = 0;
-        cout << "  send  |  decode" << endl;
+        // cout << "  send  |  decode" << endl;
         for (int i = 0; i < sender; ++i) {
-            cout << setw(7) << S(i, 0) << " | " << X[0][i] << endl;
+            // cout << setw(7) << S(i, 0) << " | " << X[0][i] << endl;
             if (abs(S(i, 0).real() - X[0][i].real()) > 1e-6 ||
                 abs(S(i, 0).imag() - X[0][i].imag()) > 1e-6) {
                 error_num++;
             }
         }
         cout.width(0);
-        cout << "Error symbol num:" << error_num << endl;
+        // cout << "Error symbol num:" << error_num << endl;
 
         total_symbol += sender;
         total_error_symbol += error_num;
@@ -115,6 +123,7 @@ int main(int argc, char *argv[]) {
 
     cout << endl;
 
+    /*
     // result output
     cout << "---------- SimResult ----------" << endl
          << "[SimResult] Modulation Order: " << mod_order << endl
@@ -126,6 +135,11 @@ int main(int argc, char *argv[]) {
          << "[SimResult] Error Decoding Times: " << error_time << "/" << times
          << " = " << error_time / times << endl
          << "[SimResult] Decode Time: " << decode_time << "ms" << endl;
+    */
+
+    cout << "SimResult," << mod_order << "," << sender << "," << receiver << ","
+         << times << "," << total_error_symbol / total_symbol << ","
+         << error_time / times << "," << decode_time << endl;
 
     delete[] ww;
     delete[] YY;
