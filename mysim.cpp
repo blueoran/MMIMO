@@ -12,6 +12,7 @@
 #include <iostream>
 #include <utility>
 #include <vector>
+#include <random>
 
 #include "decoder.cpp"
 
@@ -19,15 +20,19 @@ using namespace std;
 using namespace Eigen;
 
 int main(int argc, char *argv[]) {
-    if (argc != 6) {
+    if (argc != 7) {
         cout << "Usage:" << endl
              << argv[0]
              << " <module num> <sim times> <sender num> <receiver num> <add "
-                "noise>"
-             << endl
-             << "    Where <module num> should be in {4, 16, 32, 64}," << endl
-             << "    <add noise> should be 0/1, 0 representing no noise."
-             << endl;
+                "noise> <log10-SNR>"
+             << endl << endl
+             << "    - <module num> should be in {4, 16, 32, 64}," << endl << endl
+             << "    - <add noise> should be 0/1, 0 representing no noise." << endl << endl
+             << "    - <log10-SNR> should be a real number," << endl
+             << "       for instance, if a SNR = 20dB is wanted (S/N = 100), " << endl
+             << "       then <log10-SNR> = 2." << endl << endl
+             << "    - S/N = E[H(i,i)]/(2 * s^2), " << endl
+             << "       where H is the channel matrix, s^2 is the variance of normal noise." << endl;
         exit(-1);
     }
 
@@ -41,6 +46,7 @@ int main(int argc, char *argv[]) {
     int sender = atoi(argv[3]);
     int receiver = atoi(argv[4]);
     int add_noise = atoi(argv[5]);
+    double SNR = atof(argv[6]);
 
     complex<double> *symbols = gen_symbols(mod_order);
     Matrix<complex<double>, Dynamic, 1> S(sender);
@@ -49,8 +55,19 @@ int main(int argc, char *argv[]) {
     Matrix<complex<double>, Dynamic, Dynamic> H(receiver, sender);
     complex<double> **X;
 
+    double pSNR = pow(10.0, SNR);
+    normal_distribution<double> normal(0, 1.0);
+    uniform_real_distribution<double> uniform(-2 * pSNR, 2 * pSNR);
+    default_random_engine e;
+
+    e.seed(rand());
+
     // initialize
-    H.setRandom();
+    for (int i = 0; i < receiver; ++i) {
+        for(int j = 0;j < sender; ++j) {
+            H(i, j) = complex<double>(uniform(e), uniform(e));
+        }
+    }
 
     complex<double> **HH = new complex<double> *[receiver];
     for (int i = 0; i < receiver; ++i) {
@@ -83,7 +100,12 @@ int main(int argc, char *argv[]) {
     for (int t = 1; t <= times; ++t) {
         start = clock();
         // cout << "time: " << t << endl;
-        w.setRandom();
+
+        e.seed(rand());
+        for(int i = 0; i < receiver; ++i) {
+            w(i, 0) = normal(e);
+        }
+
         for (int i = 0; i < sender; ++i) {
             // random select symbols to send
             S(i, 0) = symbols[rand() % mod_order];
@@ -137,8 +159,10 @@ int main(int argc, char *argv[]) {
          << "[SimResult] Decode Time: " << decode_time << "ms" << endl;
     */
 
-    cout << "SimResult," << mod_order << "," << sender << "," << receiver << ","
-         << times << "," << total_error_symbol / total_symbol << ","
+    cout << "SimResult," << mod_order << "," << sender << "," << receiver << ",";
+    if (add_noise != 0)
+        cout << SNR * 10 << "," << pSNR << ",";
+    cout << times << "," << total_error_symbol / total_symbol << ","
          << error_time / times << "," << decode_time << endl;
 
     delete[] ww;
