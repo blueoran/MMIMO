@@ -66,9 +66,15 @@ python test.py
  
 在`MMIMO/`下使用`make`。默认使用zero forcing。
 
-通过`make OPT+=-DSP`使用sphere decoding。
+通过`make OPT+=[OPTION]`添加编译选项。
 
-通过`make OPT+=-DSP OPT+=-DSP_RADIUS_OPT`使用sphere decoding，利用高斯噪声的方差估计确定搜索半径的初值，公式：$r^2 = \alpha n_{receiver} \sigma^2$。
+通过`OPT+=-DSP`使用sphere decoding。
+
+通过`OPT+=-DFSD`使用fixed sphere decoding（FSD）。
+
+通过`OPT+=-DSP_RADIUS_OPT`利用高斯噪声的方差估计确定搜索半径的初值，公式：$r^2 = \alpha n_{receiver} \sigma^2$。sphere decoding和FSD均可使用此选项。
+
+通过`OPT+=-DVERBOSE`获得详细的输出。
 
 ## TODO
 

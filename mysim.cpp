@@ -99,7 +99,10 @@ int main(int argc, char *argv[]) {
 
     for (int t = 1; t <= times; ++t) {
         start = clock();
-        // cout << "time: " << t << endl;
+
+#ifdef VERBOSE
+        cout << "time: " << t << endl;
+#endif
 
         e.seed(rand());
         for(int i = 0; i < receiver; ++i) {
@@ -127,37 +130,45 @@ int main(int argc, char *argv[]) {
         decode_time += double(end - start) / CLOCKS_PER_SEC * 1000;
 
         int error_num = 0;
-        // cout << "  send  |  decode" << endl;
+#ifdef VERBOSE
+        cout << "  send  |  decode" << endl;
+#endif
         for (int i = 0; i < sender; ++i) {
-            // cout << setw(7) << S(i, 0) << " | " << X[0][i] << endl;
+#ifdef VERBOSE
+            cout << setw(7) << S(i, 0) << " | " << X[0][i] << endl;
+#endif
             if (abs(S(i, 0).real() - X[0][i].real()) > 1e-6 ||
                 abs(S(i, 0).imag() - X[0][i].imag()) > 1e-6) {
                 error_num++;
             }
         }
         cout.width(0);
-        // cout << "Error symbol num:" << error_num << endl;
+#ifdef VERBOSE
+        cout << "Error symbol num:" << error_num << endl;
+#endif
 
         total_symbol += sender;
         total_error_symbol += error_num;
         if (error_num != 0) error_time++;
     }
-
+#ifdef VERBOSE
     cout << endl;
+#endif
 
-    /*
+#ifdef VERBOSE
     // result output
-    cout << "---------- SimResult ----------" << endl
-         << "[SimResult] Modulation Order: " << mod_order << endl
-         << "[SimResult] Sender Num: " << sender << endl
-         << "[SimResult] Receiver Num:" << receiver << endl
-         << "[SimResult] Simulation times: " << times << endl
-         << "[SimResult] Symbol Error Rate: " << total_error_symbol << "/"
+    cout << "---------- SimResult-Verbose ----------" << endl
+         << "[Verbose] Modulation Order: " << mod_order << endl
+         << "[Verbose] Sender Num: " << sender << endl
+         << "[Verbose] Receiver Num:" << receiver << endl
+         << "[Verbose] Simulation times: " << times << endl
+         << "[Verbose] SNR: " << SNR * 10 << "dB" << endl
+         << "[Verbose] Symbol Error Rate: " << total_error_symbol << "/"
          << total_symbol << " = " << total_error_symbol / total_symbol << endl
-         << "[SimResult] Error Decoding Times: " << error_time << "/" << times
+         << "[Verbose] Error Decoding Times: " << error_time << "/" << times
          << " = " << error_time / times << endl
-         << "[SimResult] Decode Time: " << decode_time << "ms" << endl;
-    */
+         << "[Verbose] Decode Time: " << decode_time << "ms" << endl;
+#endif
 
     cout << "SimResult," << mod_order << "," << sender << "," << receiver << ",";
     if (add_noise != 0)
