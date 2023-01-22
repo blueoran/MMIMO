@@ -7,6 +7,7 @@
 #include <iostream>
 #include <utility>
 #include <vector>
+#include <set>
 
 using namespace std;
 using namespace Eigen;
@@ -34,6 +35,12 @@ complex<double> *FSD_single_Decoder(int mod_order, int num_sender,
                                     int num_receiver, complex<double> **H,
                                     complex<double> *Y, complex<double> *w);
 
+/// @brief K-Best Sphere Single Decoder
+complex<double> *Kbest_sphere_single_Decoder(int mod_order, int num_sender,
+                                    int num_receiver, complex<double> **H,
+                                    complex<double> *Y, complex<double> *w);
+
+
 // ------------------------------ Interface ------------------------------
 
 /// @brief Decoder
@@ -58,10 +65,178 @@ complex<double> **Decoder(int mod_order, int num_sender, int num_receiver,
 #elif defined FSD
         X[i] = FSD_single_Decoder(mod_order, num_sender, num_receiver, H,
                                      Y[i], w);
+#elif defined KSD
+        X[i] = Kbest_sphere_single_Decoder(mod_order, num_sender, num_receiver, H, 
+                                           Y[i], w);
 #else
         X[i] = single_Decoder(mod_order, num_sender, num_receiver, H, Y[i], w);
 #endif
     }
+    return X;
+}
+
+// ------------------------------ K-best ------------------------------
+
+#define bestCount 16
+
+typedef pair<double, vector<int> > setNode;
+
+void Kbest_bfs_search(int mod_order, int num_sender, int num_receiver,
+                complex<double> *symbols, complex<double> *y,
+                complex<double> *R, double &cur_radius_square,
+                complex<double> *X) {
+
+    // use heap to maintain the K-Best results rather than sort after calculating all the values
+    // use set instead of priority_queue (set is faster when we have O3)
+    // use two sets so we can swap these sets when we are getting to the next layer
+    set<setNode> cur, nxt;
+
+    // init
+    cur.emplace(0, vector<int>());
+
+    while (cur.size()) { // traverse the states of cur_layer
+
+        // use the naming from the original code to ensure code consistency
+        double cur_partial_dis = cur.begin()->first;
+        vector<int> cur_s(cur.begin()->second);
+
+        cur.erase(cur.begin());
+
+        int cur_layer = num_sender - cur_s.size();
+        
+        if (cur_layer) { // not the bottom layer
+
+            for (int i = 0; i < mod_order; ++i) { // use the original code to calculate the distance
+                // try for each symbol, calculate the cost of this symbol on this layer
+                
+                complex<double> temp = 0;
+                // if cur_layer > num_receiver, calculation cannot be finished,
+                // just let cost = 0
+                if (cur_layer <= num_receiver) {
+                    // calculating dot_product(R(row[cur_layer]),
+                    // current_seleceted_symbol) first, calculate the symbols selected
+                    // by upper layer
+                    for (int i = cur_layer + 1;
+                        (i <= num_receiver) && (i <= num_sender); ++i) {
+                        // note: Eigen save matrix as col form, so R(i, j) actually
+                        // locates at *(R + j * col_len + i)
+                        temp -= (*(R + (i - 1) * num_receiver + (cur_layer - 1))) *
+                                symbols[cur_s[num_sender - i]];
+                    }
+                    // second, calculate this possible symbol[i]
+                    temp -= (*(R + (cur_layer - 1) * num_receiver + (cur_layer - 1))) *
+                            symbols[i];
+                    // temp = y[l] - dot_product
+                    temp += y[cur_layer - 1];
+                }
+                // cost = |temp|^2
+                // dis(l-1, i) = dis(l) + cost(i)
+
+                // update the state
+                cur_partial_dis += temp.real() * temp.real() +
+                                   temp.imag() * temp.imag();
+                cur_s.push_back(i); // note that we use 'push_back', so the order of cur_s is different from the original code
+
+                // try to insert the state into the next set
+                if (nxt.size() < bestCount || cur_partial_dis < nxt.rbegin()->first) {
+                    if (nxt.size() == bestCount)
+                        nxt.erase(--nxt.end());
+                    nxt.emplace(cur_partial_dis, cur_s);
+                }
+                
+                // revoke the update
+                cur_partial_dis -= temp.real() * temp.real() +
+                                   temp.imag() * temp.imag();
+                cur_s.pop_back();
+            }
+
+            // not the bottom layer
+            // swap the two sets, means we are getting to the next layer
+            if (cur.size() == 0)
+                std::swap(cur, nxt);
+        }else if (cur_partial_dis < cur_radius_square) { // the bottom layer, update the answer
+            cur_radius_square = cur_partial_dis;
+            for (int i = 0; i < num_sender; i++)
+                X[i] = symbols[cur_s[num_sender - i - 1]]; // note that we use 'push_back', so the order of cur_s is different from the original code
+        }
+    }
+
+}
+
+complex<double> *Kbest_sphere_single_Decoder(int mod_order, int num_sender,
+                                       int num_receiver, complex<double> **H,
+                                       complex<double> *Y, complex<double> *w) {
+    // The only difference between KSD and SD is the search procedure,
+    // for coding simplicity, we copy the old codes.
+    
+    // get the reference symbols
+    complex<double> *symbols = gen_symbols(mod_order);
+
+    complex<double> *X = new complex<double>[num_sender];
+    complex<double> *s = new complex<double>[num_sender];
+    for (int i = 0; i < num_sender; i++) X[i] = s[i] = 0;
+
+    Matrix<complex<double>, Dynamic, Dynamic> HH(num_receiver, num_sender);
+    for (int i = 0; i < num_sender; ++i)
+        for (int j = 0; j < num_receiver; ++j) HH(j, i) = H[j][i];
+
+    // map C array to Eigen Matrix
+    Matrix<complex<double>, Dynamic, 1> y =
+        Map<Matrix<complex<double>, Dynamic, 1>>(Y, num_receiver, 1);
+
+    // Shapes:
+    // H: r * s
+    // Q: r * r
+    // R: r * s
+    // y: r * 1
+    // s: s * 1
+    // Formula:
+    // H = Q * R
+    // y_hat = Q^* * y
+
+    // Do QR decomposition
+    HouseholderQR<Matrix<complex<double>, Dynamic, Dynamic>> QR(HH);
+    Matrix<complex<double>, Dynamic, Dynamic> Q, R;
+    Q = QR.householderQ();
+    R = QR.matrixQR().triangularView<Upper>();
+
+    Matrix<complex<double>, Dynamic, 1> y_hat(num_receiver);
+    y_hat = Q.adjoint() * y;
+
+    // start search
+    double radius_square = 1e10;
+
+#ifndef SP_RADIUS_OPT
+    radius_square = 1e10;
+#else
+    if (w == nullptr) {
+        radius_square = 1e10;
+    } else {
+        complex<double> mean = 0;
+        double variance = 0;
+        for (int i = 0; i < num_receiver; ++i) {
+            mean += w[i];
+        }
+        mean /= num_receiver;
+        for (int i = 0; i < num_receiver; ++i) {
+            complex<double> sub = w[i] - mean;
+            variance += sub.real() * sub.real() + sub.imag() * sub.imag();
+        }
+        if (num_receiver > 1)
+            variance /= (num_receiver - 1);
+        else
+            variance = 1;
+        radius_square = mod_order * mod_order * num_receiver * variance;
+        cout << "searching radius^2: " << radius_square << endl;
+    }
+#endif
+
+    Kbest_bfs_search(mod_order, num_sender, num_receiver, symbols, y_hat.data(),
+               R.data(), radius_square, X);
+
+    delete[] symbols;
+    delete[] s;
+
     return X;
 }
 

@@ -47,3 +47,8 @@ batchtest_exe_output ./mysim.exe sp
 make clean
 make OPT+=-DSP OPT+=-DSP_RADIUS_OPT
 batchtest_exe_output ./mysim.exe sp-init-opt
+
+# K-Best Sphere Decoding
+make clean
+make OPT+=-DKSD
+batchtest_exe_output ./mysim.exe ksd
