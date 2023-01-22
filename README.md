@@ -72,6 +72,8 @@ python test.py
 
 通过`OPT+=-DFSD`使用fixed sphere decoding（FSD）。
 
+通过`OPT+=-DKSD`使用K-best sphere decoding（KSD）。
+
 通过`OPT+=-DSP_RADIUS_OPT`利用高斯噪声的方差估计确定搜索半径的初值，公式：$r^2 = \alpha n_{receiver} \sigma^2$。sphere decoding和FSD均可使用此选项。
 
 通过`OPT+=-DVERBOSE`获得详细的输出。

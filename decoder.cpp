@@ -206,31 +206,6 @@ complex<double> *Kbest_sphere_single_Decoder(int mod_order, int num_sender,
     // start search
     double radius_square = 1e10;
 
-#ifndef SP_RADIUS_OPT
-    radius_square = 1e10;
-#else
-    if (w == nullptr) {
-        radius_square = 1e10;
-    } else {
-        complex<double> mean = 0;
-        double variance = 0;
-        for (int i = 0; i < num_receiver; ++i) {
-            mean += w[i];
-        }
-        mean /= num_receiver;
-        for (int i = 0; i < num_receiver; ++i) {
-            complex<double> sub = w[i] - mean;
-            variance += sub.real() * sub.real() + sub.imag() * sub.imag();
-        }
-        if (num_receiver > 1)
-            variance /= (num_receiver - 1);
-        else
-            variance = 1;
-        radius_square = mod_order * mod_order * num_receiver * variance;
-        cout << "searching radius^2: " << radius_square << endl;
-    }
-#endif
-
     Kbest_bfs_search(mod_order, num_sender, num_receiver, symbols, y_hat.data(),
                R.data(), radius_square, X);
 
