@@ -1,6 +1,6 @@
 # MMIMO
 
-## ½Ó¿Ú
+## æ¥å£
 
 ```cpp
 ./decoder.cpp
@@ -20,15 +20,15 @@ Y=Hx+w
 $$
 |param|type|description|
 |:---:|:---:|:---:|
-|mod_order|int|µ÷ÖÆ½×Êı|
-|num_sender|int|·¢ËÍÌìÏßÊı|
-|num_receiver|int|½ÓÊÕÌìÏßÊı|
-|num_ofdm_sym|int|OFDM²¢·¢·ûºÅÊı|
-|H|[num_receiver*num_sender]|ĞÅµÀ¾ØÕó|
-|Y|[num_ofdm_sym*num_receiver]|½ÓÊÕĞÅºÅ|
-|w|[num_receiver]|ÔëÒô|
+|mod_order|int|è°ƒåˆ¶é˜¶æ•°|
+|num_sender|int|å‘é€å¤©çº¿æ•°|
+|num_receiver|int|æ¥æ”¶å¤©çº¿æ•°|
+|num_ofdm_sym|int|OFDMå¹¶å‘ç¬¦å·æ•°|
+|H|[num_receiver*num_sender]|ä¿¡é“çŸ©é˜µ|
+|Y|[num_ofdm_sym*num_receiver]|æ¥æ”¶ä¿¡å·|
+|w|[num_receiver]|å™ªéŸ³|
 
-## ²âÊÔ
+## æµ‹è¯•
 
 ### Simulation
 
@@ -40,7 +40,7 @@ $$
 cd sim/RenewLab
 matlab
 rl_ofdm_mimo
-(ÏÔÊ¾: MIMO algorithm(ZF, Conj, C): ) ÊäÈë: C
+(æ˜¾ç¤º: MIMO algorithm(ZF, Conj, C): ) è¾“å…¥: C
 ```
 
 ### Traces
@@ -64,19 +64,23 @@ python test.py
    - g++
    - eigen3
  
-ÔÚ`MMIMO/`ÏÂÊ¹ÓÃ`make`¡£Ä¬ÈÏÊ¹ÓÃzero forcing¡£
+åœ¨`MMIMO/`ä¸‹ä½¿ç”¨`make`ã€‚é»˜è®¤ä½¿ç”¨zero forcingã€‚
 
-Í¨¹ı`make OPT+=[OPTION]`Ìí¼Ó±àÒëÑ¡Ïî¡£
+é€šè¿‡`make OPT+=[OPTION]`æ·»åŠ ç¼–è¯‘é€‰é¡¹ã€‚
 
-Í¨¹ı`OPT+=-DSP`Ê¹ÓÃsphere decoding¡£
+é€šè¿‡`OPT+=-DSP`ä½¿ç”¨sphere decodingã€‚
 
-Í¨¹ı`OPT+=-DFSD`Ê¹ÓÃfixed sphere decoding£¨FSD£©¡£
+é€šè¿‡`OPT+=-DFSD`ä½¿ç”¨fixed sphere decodingï¼ˆFSDï¼‰ã€‚
 
-Í¨¹ı`OPT+=-DKSD`Ê¹ÓÃK-best sphere decoding£¨KSD£©¡£
+é€šè¿‡`OPT+=-DKSD`ä½¿ç”¨K-best sphere decodingï¼ˆKSDï¼‰ã€‚
 
-Í¨¹ı`OPT+=-DSP_RADIUS_OPT`ÀûÓÃ¸ßË¹ÔëÉùµÄ·½²î¹À¼ÆÈ·¶¨ËÑË÷°ë¾¶µÄ³õÖµ£¬¹«Ê½£º$r^2 = \alpha \cdot n_{receiver} \cdot \sigma^2$¡£sphere decodingºÍFSD¾ù¿ÉÊ¹ÓÃ´ËÑ¡Ïî¡£
+é€šè¿‡`OPT+=-DSP_RADIUS_OPT`åˆ©ç”¨é«˜æ–¯å™ªå£°çš„æ–¹å·®ä¼°è®¡ç¡®å®šæœç´¢åŠå¾„çš„åˆå€¼ï¼Œå…¬å¼ï¼š
+$$
+r^2 = \alpha \cdot n_{receiver} \cdot \sigma^2
+$$ã€‚
+sphere decodingå’ŒFSDå‡å¯ä½¿ç”¨æ­¤é€‰é¡¹ã€‚
 
-Í¨¹ı`OPT+=-DVERBOSE`»ñµÃÏêÏ¸µÄÊä³ö¡£
+é€šè¿‡`OPT+=-DVERBOSE`è·å¾—è¯¦ç»†çš„è¾“å‡ºã€‚
 
 ### LiveDemo
 
@@ -84,11 +88,11 @@ python test.py
 python live_demo.py
 ```
 
-¼´¿É´ò¿ªlivedemoµÄ½»»¥½çÃæ£¬¸ü·½±ãÇÒÏ¸ÖÂµÄ¶Ôdecode½á¹û½øĞĞ¹Û²ì¡£
+å³å¯æ‰“å¼€livedemoçš„äº¤äº’ç•Œé¢ï¼Œæ›´æ–¹ä¾¿ä¸”ç»†è‡´çš„å¯¹decodeç»“æœè¿›è¡Œè§‚å¯Ÿã€‚
 
 ## TODO
 
 - rl_ofdm_mmimo_sim.m
 - Agora
-- armadillo(µÈ¾ØÕó·ÖÎölib)
+- armadillo(ç­‰çŸ©é˜µåˆ†ælib)
 - better simulator for python
