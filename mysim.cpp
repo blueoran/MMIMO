@@ -156,7 +156,35 @@ int main(int argc, char *argv[]) {
 #endif
 
 #ifdef VERBOSE
-    // result output
+    // // result output
+    // cout<<"Symbol Sent: ";
+    // for(int i=0;i<sender;++i){
+    //     cout<<S(i,0)<<" ";
+    // }
+    // cout<<endl;
+    // cout<<"Symbol Decoded: ";
+    // for(int i=0;i<sender;++i){
+    //     cout<<X[0][i]<<" ";
+    // }
+    // cout<<endl;
+    // cout<<"Symbol Diff: ";
+    // for(int i=0;i<sender;++i){
+    //     cout<<abs(S(i,0)-X[0][i])<<" ";
+    // }
+    // cout<<endl;
+    // cout<<"Channel Matrix: "<<endl;
+    // for(int i=0;i<receiver;++i){
+    //     for(int j=0;j<sender;++j){
+    //         cout<<H(i,j)<<" ";
+    //     }
+    //     cout<<endl;
+    // }
+    // cout<<endl;
+    // cout<<"Channel Noise: ";
+    // for(int i=0;i<receiver;++i){
+    //     cout<<w(i,0)<<" ";
+    // }
+    // cout<<endl;
     cout << "---------- SimResult-Verbose ----------" << endl
          << "[Verbose] Modulation Order: " << mod_order << endl
          << "[Verbose] Sender Num: " << sender << endl
@@ -168,14 +196,15 @@ int main(int argc, char *argv[]) {
          << "[Verbose] Error Decoding Times: " << error_time << "/" << times
          << " = " << error_time / times << endl
          << "[Verbose] Decode Time: " << decode_time << "ms" << endl;
+    cout << "---------- SimResult-Verbose ----------" << endl;
 #endif
 
-    cout << "SimResult," << mod_order << "," << sender << "," << receiver << ",";
+    cout << "---------- SimResult ----------" << "\n\tmod_order: "<<mod_order << "\n\tsender's antenna num: " << sender << "\n\treceiver's antenna num: " << receiver << "\n\t";
     if (add_noise != 0)
-        cout << SNR * 10 << "," << pSNR << ",";
-    cout << times << "," << total_error_symbol / total_symbol << ","
-         << error_time / times << "," << decode_time << endl;
-
+        cout << "SNR*10: "<<SNR * 10 << "\n\tpSNR: " << pSNR << "\n\t";
+    cout << "times: "<<times << "\n\tsymbol_error_rate:  " << total_error_symbol / total_symbol << "\n\terror_decoding_times: "
+         << error_time / times << "\n\tdecode_time: " << decode_time << endl;
+cout << "---------- SimResult ----------" <<endl;
     delete[] ww;
     delete[] YY;
     for (int i = 0; i < receiver; ++i) {

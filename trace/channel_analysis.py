@@ -429,7 +429,7 @@ def calExpectedCapacity(csi, user=0, max_delay=100, conj=True, downlink=False):
 
 if __name__ == '__main__':
 	starttime = time.time()	
-	show_plots = True	
+	show_plots = False	
 	zoom = 0  #samples to zoom in around frame (to look at local behavior), 0 to disable
 	pl = 0
 	static = h5py.File('/home/steven/Course/Network/dataset/traces/ArgosCSI-8x6-2015-11-28-14-39-47_uhf_static/ArgosCSI-8x6-2015-11-28-14-39-47_static.hdf5','r')
@@ -473,6 +473,7 @@ if __name__ == '__main__':
 		zfbws = np.empty((userCSI.shape[2],userCSI.shape[1],userCSI.shape[3]),dtype='complex64')	
 		for sc in range(userCSI.shape[3]):
 			zfbws[:,:,sc] = np.linalg.pinv(userCSI[frame,:,:,sc])
+		# print(zfbws-conjbws)
 
 		# import pdb;pdb.set_trace()
 		downlink = True

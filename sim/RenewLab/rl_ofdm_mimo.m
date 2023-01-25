@@ -36,12 +36,12 @@ close all;
 % end
 
 mex -setup C++;
-mex '-I/user/include/eigen3' Decoder.cpp;
+mex '-I/user/include/eigen3 -O3 -fPIC' Decoder.cpp;
 
 % Params:
 N_BS_NODE = 12; % Number of SDRs (Matlab scripts only using antenna A)
 N_UE = 2;
-WRITE_PNG_FILES = 0; % Enable writing plots to PNG
+WRITE_PNG_FILES = 1; % Enable writing plots to PNG
 % SIM_MOD = 1;
 DEBUG = 0;
 PLOT = 0;
@@ -92,6 +92,8 @@ end
 
 %% Generate a payload of random integers
 tx_data = randi(MOD_ORDER, N_DATA_SYMS, N_UE) - 1;
+fprintf("Input data: \n");
+disp(tx_data);
 
 tx_syms = mod_sym(tx_data, MOD_ORDER);
 
@@ -336,6 +338,8 @@ syms_eq_pc = syms_eq_pc.';
 
 %% Demodulate
 rx_data = demod_sym(syms_eq_pc, MOD_ORDER);
+fprintf("rx_data: \n");
+disp(rx_data);
 
 %% Plot results
 cf = 0;

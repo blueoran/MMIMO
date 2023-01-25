@@ -21,21 +21,23 @@ def generate_samples(from_file,num_sample):
 
 
 
-def calc_martix(userCSI,user,frame,method='zf'):
+def calc_martix(userCSI,noise,user,frame,method='zf'):
     user = 0
     frame=10
     lts_iq = h5log['Pilot_Samples'][frame,0,user*samps_per_user:(user+1)*samps_per_user,0]*1.+h5log['Pilot_Samples'][frame,0,user*samps_per_user:(user+1)*samps_per_user,1]*1j
     lts_iq /= 2**15
     offset = lts.findLTS(lts_iq)[0][0]+32
     print("LTS offset for user %d, frame %d: %d" % (user, frame, offset))
+    userNoise=noise[frame,:,:,:]
     if method=='conj':
         bws = np.transpose(np.conj(userCSI[frame,:,:,:]),(1,0,2))
-        return bws	
+        return bws,userNoise	
     elif method=='zf':	
         bws = np.empty((userCSI.shape[2],userCSI.shape[1],userCSI.shape[3]),dtype='complex128')	
+        print(bws.shape)
         for sc in range(userCSI.shape[3]):
             bws[:,:,sc] = np.linalg.pinv(userCSI[frame,:,:,sc])
-        return bws
+        return bws,userNoise
     else:
         raise ValueError('method must be conj or zf')
 
@@ -80,8 +82,14 @@ def cal_error(msg_send, msg_recv):
 if __name__ == '__main__':
     np.random.seed(0)
     # generate_samples('./traces/ArgosCSI-8x6-2015-11-28-14-39-47_uhf_static/ArgosCSI-8x6-2015-11-28-14-39-47_static.hdf5',20)
-    h5log, userCSI, noise, num_users, samps_per_user, timestep=openLog('./sample_traces/sample_20.hdf5',1000)
-    bws=calc_martix(userCSI,0,10,'zf')
+    # print(openLog('./sample_traces/sample_20.hdf5',1000))
+    # h5log, userCSI, noise, num_users, samps_per_user, timestep=openLog('./sample_traces/sample_20.hdf5',1000)
+    h5log, userCSI, noise, num_users, samps_per_user, timestep=openLog('/home/steven/Course/Network/dataset/traces/ArgosCSI-8x6-2015-11-28-14-39-47_uhf_static/ArgosCSI-8x6-2015-11-28-14-39-47_static.hdf5',1000)
+    print({k:h5log.attrs[k] for k in h5log.attrs})
+    print(h5log.attrs['nodes_description'])
+    print(h5log, userCSI.shape, noise.shape, num_users, samps_per_user, timestep)
+    bws,usernoise=calc_martix(userCSI,noise,0,10,'zf')
+    print(f'bws:{bws.shape}')
 
     print("mod order = 4")
     msg_send,msg_recv=simulate(CDecoder, 16,bws,noise,10,0.5,False)
